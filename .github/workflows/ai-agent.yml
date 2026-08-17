@@ -1,0 +1,43 @@
+name: 24/7 Second Brain Sub-Agent
+
+on:
+  schedule:
+    # Runs automatically every 6 hours
+    - cron: '0 */6 * * *'
+  push:
+    branches: [ main ]
+    paths:
+      - 'inbox/**' # Only trigger when new notes are added to inbox
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  run-sub-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Vault
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Process Vault via Free Claude Code
+        env:
+          ANTHROPIC_BASE_URL: ${{ secrets.RENDER_SERVER_URL }}
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.MY_SECRET_TOKEN }}
+        run: |
+          claude -p "Check notes in the inbox/ folder. Categorize insights into sub-agent files: cs-tech.md, science-ai.md, finance-budget.md, and agriculture-iot.md. Keep existing file structures intact and clean up processed notes."
+
+      - name: Commit and Push Changes Back to Vault
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Automated sub-agent processing [skip ci]"
+          git push
