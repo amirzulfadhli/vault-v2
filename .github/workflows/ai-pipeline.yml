@@ -1,0 +1,24 @@
+- name: Process Raw Notes with Custom Proxy
+  env:
+    PROXY_URL: ${{ secrets.FCC_SERVER_URL }}
+  run: |
+    # Loop over all markdown files in raw_notes
+    for file in raw_notes/*.md; do
+      [ -e "$file" ] || continue
+      
+      echo "Processing $file..."
+      CONTENT=$(cat "$file")
+      SYSTEM_PROMPT=$(cat .github/sub_agent_prompt.txt)
+      
+      # Send note content + prompt to proxy server
+      RESPONSE=$(curl -s -X POST "$PROXY_URL/api/process" \
+        -H "Content-Type: application/json" \
+        -d "$(jq -n \
+              --arg sys "$SYSTEM_PROMPT" \
+              --arg body "$CONTENT" \
+              '{system: $sys, note: $body}')")
+      
+      # Extract output and save to final notes folder
+      echo "$RESPONSE" | jq -r '.processed_note' > "notes/processed/$(basename "$file")"
+      rm "$file"
+    done
