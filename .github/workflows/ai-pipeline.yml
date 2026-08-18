@@ -1,24 +1,51 @@
-- name: Process Raw Notes with Custom Proxy
-  env:
-    PROXY_URL: ${{ secrets.FCC_SERVER_URL }}
-  run: |
-    # Loop over all markdown files in raw_notes
-    for file in raw_notes/*.md; do
-      [ -e "$file" ] || continue
-      
-      echo "Processing $file..."
-      CONTENT=$(cat "$file")
-      SYSTEM_PROMPT=$(cat .github/sub_agent_prompt.txt)
-      
-      # Send note content + prompt to proxy server
-      RESPONSE=$(curl -s -X POST "$PROXY_URL/api/process" \
-        -H "Content-Type: application/json" \
-        -d "$(jq -n \
-              --arg sys "$SYSTEM_PROMPT" \
-              --arg body "$CONTENT" \
-              '{system: $sys, note: $body}')")
-      
-      # Extract output and save to final notes folder
-      echo "$RESPONSE" | jq -r '.processed_note' > "notes/processed/$(basename "$file")"
-      rm "$file"
-    done
+name: AI Second Brain Note Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'raw_notes/**'
+
+jobs:
+  process-notes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Process Raw Notes
+        env:
+          PROXY_URL: ${{ secrets.FCC_SERVER_URL }}
+        run: |
+          mkdir -p notes/processed
+          for file in raw_notes/*.md; do
+            [ -f "$file" ] || continue
+            echo "Processing $file..."
+            
+            # Reads note content and prompt file
+            CONTENT=$(cat "$file")
+            SYSTEM_PROMPT=$(cat .github/prompts/sub_agent_prompt.txt)
+            
+            # Send payload to server
+            RESPONSE=$(curl -s -X POST "$PROXY_URL/api/process" \
+              -H "Content-Type: application/json" \
+              -d "$(jq -n --arg sys "$SYSTEM_PROMPT" --arg body "$CONTENT" '{system: $sys, note: $body}')")
+            
+            # Write processed result
+            echo "$RESPONSE" | jq -r '.processed_note' > "notes/processed/$(basename "$file")"
+            rm "$file"
+          done
+
+      - name: Commit and Push Processed Notes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(ai): process raw notes [skip ci]"
+          branch: main
+          file_pattern: "notes/processed/*.md raw_notes/*.md"
