@@ -7,16 +7,21 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'inbox/**' # Only trigger when new notes are added to inbox
+      - 'inbox/**'
+      - 'content/**'
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:
   run-sub-agent:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout Vault
         uses: actions/checkout@v4
         with:
+          persist-credentials: true
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -32,7 +37,8 @@ jobs:
           ANTHROPIC_BASE_URL: ${{ secrets.RENDER_SERVER_URL }}
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.MY_SECRET_TOKEN }}
         run: |
-          claude -p "Check notes in the inbox/ folder. Categorize insights into sub-agent files: cs-tech.md, science-ai.md, finance-budget.md, and agriculture-iot.md. Keep existing file structures intact and clean up processed notes."
+          mkdir -p inbox
+          claude -p "Check notes in inbox/ and content/ folders. Categorize insights into sub-agent files: cs-tech.md, science-ai.md, finance-budget.md, and agriculture-iot.md. Keep existing file structures intact and clean up processed notes." --dangerously-skip-permissions
 
       - name: Commit and Push Changes Back to Vault
         run: |
