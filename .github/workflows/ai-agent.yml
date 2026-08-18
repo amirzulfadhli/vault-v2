@@ -44,10 +44,9 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git rebase origin/main
           git add .
           if ! git diff-index --quiet HEAD; then
+            git pull --rebase --autostash origin main
             git commit -m "Automated sub-agent processing [skip ci]"
             git push origin main
           fi
