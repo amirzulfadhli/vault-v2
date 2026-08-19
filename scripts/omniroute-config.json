@@ -1,0 +1,22 @@
+{
+  "server": {
+    "host": "127.0.0.1",
+    "port": 20128,
+    "apiPrefix": "/v1"
+  },
+  "compression": {
+    "enableRTK": true,
+    "stripGitDiffs": true
+  },
+  "routingStrategy": "priority-fallback",
+  "combos": [
+    {
+      "name": "free-agent-tier",
+      "providers": [
+        "openrouter/nousresearch/hermes-3-llama-3.1-405b",
+        "openrouter/deepseek/deepseek-r1:free",
+        "openrouter/meta-llama/llama-3.3-70b-instruct:free"
+      ]
+    }
+  ]
+}
