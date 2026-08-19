@@ -27,7 +27,7 @@ jobs:
       - name: Setup Node.js & Python
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11' # <-- Change 3.10 to 3.11
@@ -51,7 +51,10 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           # Hermes evaluates inbox items and writes execution instructions
-          hermes chat send "Inspect inbox/*.txt items. Analyze taxonomy rules in CLAUDE.md. Formulate sorting directives into task_instruction.txt." || true
+          # Incorrect syntax:
+          # hermes Inspect inbox/*.txt...
+          # Correct syntax:
+          hermes chat -q "Inspect inbox/*.txt items. Analyze taxonomy rules in CLAUDE.md. Formulate sorting directives into task_instruction.txt." --yolo
 
       - name: 4. Wake Up Render Server (fcc-server)
         env:
