@@ -1,6 +1,10 @@
 ---
-title: Test Note
-tags: [raw, cs]
+title: CS Technology Notes
+tags:
+  - cs-tech
 ---
-# Machine Learning Test
+
+# Machine Learning
 Machine learning models learn patterns from data using Python libraries like Scikit-learn.
+
+*Processed from: test-note.md*
