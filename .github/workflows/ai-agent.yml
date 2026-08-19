@@ -77,18 +77,17 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Stage all generated and deleted files first
+          # 1. Stage all newly created and deleted files
           git add -A
           
-          # Check if there are changes to commit
+          # 2. Commit local changes if any exist
           if ! git diff-index --quiet HEAD; then
             git commit -m "Automated sub-agent processing [skip ci]"
-            
-            # Fetch remote changes without auto-rebasing stashes
-            git fetch origin main
-            
-            # Merge remote changes, favoring AI runner modifications on conflict
-            git merge origin/main -X ours --no-edit || git rebase -X ours origin/main
-            
-            git push origin main
           fi
+          
+          # 3. Sync with remote branch using merge strategy
+          git fetch origin main
+          git merge origin/main -X ours --no-edit || true
+          
+          # 4. Push final state to remote repository
+          git push origin main
