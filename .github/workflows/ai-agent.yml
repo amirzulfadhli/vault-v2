@@ -24,29 +24,61 @@ jobs:
           persist-credentials: true
           fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: Setup Node.js & Python
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
-      - name: Install Claude Code CLI
-        run: npm install -g @anthropic-ai/claude-code
+      - name: Install System Dependencies
+        run: |
+          npm install -g @anthropic-ai/claude-code omniroute
+          pip install hermes-agent requests
 
-      - name: Process Vault via Free Claude Code
+      - name: 1. Auto-Fetch Online Knowledge
+        run: |
+          python scripts/fetch_online_knowledge.py || true
+
+      - name: 2. Start OmniRoute Gateway (Secretary Proxy)
+        run: |
+          omniroute --config ./scripts/omniroute-config.json &
+          sleep 5 # Wait for OmniRoute server initialization
+
+      - name: 3. Run Hermes Agent (The Boss) via OmniRoute Proxy
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          # Hermes evaluates inbox items and writes execution instructions
+          hermes chat send "Inspect inbox/*.txt items. Analyze taxonomy rules in CLAUDE.md. Formulate sorting directives into task_instruction.txt." || true
+
+      - name: 4. Wake Up Render Server (fcc-server)
+        env:
+          RENDER_URL: ${{ secrets.RENDER_SERVER_URL }}
+        run: |
+          echo "Pinging Render fcc-server..."
+          until curl -s "$RENDER_URL" > /dev/null; do
+            sleep 5
+          done
+          echo "Render fcc-server is active!"
+
+      - name: 5. Execute Claude Code CLI (The Worker)
         env:
           ANTHROPIC_BASE_URL: ${{ secrets.RENDER_SERVER_URL }}
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.MY_SECRET_TOKEN }}
         run: |
-          mkdir -p inbox
-          claude --dangerously-skip-permissions -p "Check notes in inbox/ and content/ folders. Categorize insights into sub-agent files: cs-tech.md, science-ai.md, finance-budget.md, and agriculture-iot.md. Keep existing file structures intact and clean up processed notes."
+          if [ -f task_instruction.txt ]; then
+            claude --dangerously-skip-permissions -p "$(cat task_instruction.txt). Ensure new directories under content/ are created dynamically. Delete processed text items from inbox/."
+          fi
 
-      - name: Commit and Push Changes Back to Vault
+      - name: 6. Commit and Push Changes Back to Vault
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           if ! git diff-index --quiet HEAD; then
             git pull --rebase --autostash origin main
-            git commit -m "Automated sub-agent processing [skip ci]"
+            git commit -m "Automated sub-agent processing via Hermes + OmniRoute [skip ci]"
             git push origin main
           fi
