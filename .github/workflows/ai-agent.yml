@@ -34,7 +34,7 @@ jobs:
 
       - name: Install System Dependencies
         run: |
-          npm install -g @anthropic-ai/claude-code omniroute
+          npm install -g --legacy-peer-deps @anthropic-ai/claude-code omniroute
           pip install hermes-agent requests
 
       - name: 1. Auto-Fetch Online Knowledge
