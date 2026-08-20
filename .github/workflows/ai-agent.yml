@@ -41,10 +41,14 @@ jobs:
         run: |
           python scripts/fetch_online_knowledge.py || true
 
-      - name: 2. Start OmniRoute Gateway (Secretary Proxy)
+      - name: 2. Start OmniRoute Gateway & Seed Credentials
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           omniroute serve --daemon &
           sleep 5
+          # Seed the OpenRouter API key into OmniRoute's local store
+          omniroute credentials add openrouter --key "$OPENROUTER_API_KEY" || true
 
       - name: 3. Run Hermes Agent (The Boss) via OmniRoute Proxy
         env:
