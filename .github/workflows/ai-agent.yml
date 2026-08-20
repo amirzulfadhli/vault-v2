@@ -43,19 +43,14 @@ jobs:
 
       - name: 2. Start OmniRoute Gateway (Secretary Proxy)
         run: |
-          omniroute --config ./scripts/omniroute-config.json &
-          sleep 5 # Wait for OmniRoute server initialization
+          omniroute serve --daemon &
+          sleep 5
 
       - name: 3. Run Hermes Agent (The Boss) via OmniRoute Proxy
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          # Hermes evaluates inbox items and writes execution instructions
-          # Incorrect syntax:
-          # hermes Inspect inbox/*.txt...
-          # Correct syntax:
-          hermes chat -q "Inspect inbox/*.txt items. Analyze taxonomy rules in CLAUDE.md. Formulate sorting directives into task_instruction.txt." --yolo
-
+          hermes chat --config ./scripts/hermes-config.yaml -q "Inspect inbox/*.txt items. Analyze taxonomy rules in CLAUDE.md. Formulate sorting directives into task_instruction.txt." --yolo || true
       - name: 4. Wake Up Render Server (fcc-server)
         env:
           RENDER_URL: ${{ secrets.RENDER_SERVER_URL }}
