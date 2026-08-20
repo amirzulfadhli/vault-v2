@@ -1,10 +1,8 @@
 model:
-  provider: custom
   default: "openrouter/nousresearch/hermes-3-llama-3.1-405b:free"
-  base_url: "http://127.0.0.1:20128/v1"
 
 providers:
-  - name: custom
-    type: openai
+  - name: custom_openai
+    type: custom_openai
     base_url: "http://127.0.0.1:20128/v1"
     api_key: "${OPENROUTER_API_KEY}"
