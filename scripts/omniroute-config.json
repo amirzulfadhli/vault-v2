@@ -4,15 +4,10 @@
     "port": 20128,
     "apiPrefix": "/v1"
   },
-  "routingStrategy": "priority-fallback",
-  "combos": [
-    {
-      "name": "free-agent-tier",
-      "providers": [
-        "openrouter/nousresearch/hermes-3-llama-3.1-405b:free",
-        "openrouter/deepseek/deepseek-r1:free",
-        "openrouter/meta-llama/llama-3.3-70b-instruct:free"
-      ]
+  "defaultProvider": "openrouter",
+  "providers": {
+    "openrouter": {
+      "apiKey": "${OPENROUTER_API_KEY}"
     }
-  ]
+  }
 }
