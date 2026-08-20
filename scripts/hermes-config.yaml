@@ -1,6 +1,7 @@
 model:
   provider: custom_openai
-  name: "nousresearch/hermes-3-llama-3.1-405b"
+  name: "nousresearch/hermes-3-llama-3.1-405b:free"
+
 custom_openai:
   api_key: "${OPENROUTER_API_KEY}"
-  base_url: "http://127.0.0.1:20128/v1"  # Routes through local OmniRoute proxy
+  base_url: "http://127.0.0.1:20128/v1"
