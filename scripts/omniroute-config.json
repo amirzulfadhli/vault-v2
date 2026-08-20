@@ -4,10 +4,6 @@
     "port": 20128,
     "apiPrefix": "/v1"
   },
-  "compression": {
-    "enableRTK": true,
-    "stripGitDiffs": true
-  },
   "routingStrategy": "priority-fallback",
   "combos": [
     {
