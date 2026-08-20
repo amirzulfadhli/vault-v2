@@ -50,7 +50,9 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          hermes chat --config ./scripts/hermes-config.yaml -q "Inspect inbox/*.txt items. Analyze taxonomy rules in CLAUDE.md. Formulate sorting directives into task_instruction.txt." --yolo || true
+          mkdir -p ~/.hermes
+          cp ./scripts/hermes-config.yaml ~/.hermes/config.yaml
+          hermes chat -q "Inspect inbox/*.txt items. Analyze taxonomy rules in CLAUDE.md. Formulate sorting directives into task_instruction.txt." --yolo || true
       - name: 4. Wake Up Render Server (fcc-server)
         env:
           RENDER_URL: ${{ secrets.RENDER_SERVER_URL }}
