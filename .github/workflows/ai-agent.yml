@@ -32,14 +32,15 @@ jobs:
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code
 
-      - name: Process Vault via Free Claude Code
+      - name: Process Vault via Multi-Model Sub-Agents
         env:
           ANTHROPIC_BASE_URL: ${{ secrets.RENDER_SERVER_URL }}
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.MY_SECRET_TOKEN }}
+          ANTHROPIC_API_KEY: ""
         run: |
           mkdir -p inbox
-          claude --dangerously-skip-permissions -p "Check notes in inbox/ and content/ folders. Categorize insights into sub-agent files: cs-tech.md, science-ai.md, finance-budget.md, and agriculture-iot.md. Keep existing file structures intact and clean up processed notes."
-
+          claude --model claude-3-5-sonnet --dangerously-skip-permissions -p "Check inbox/ and content/. Delegate tasks to defined sub-agents."
+          
       - name: Commit and Push Changes Back to Vault
         run: |
           git config --global user.name "github-actions[bot]"
