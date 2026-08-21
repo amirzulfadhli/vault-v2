@@ -45,13 +45,14 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          # 1. Create OmniRoute data directory
+          # 1. Setup OmniRoute configuration folder
           mkdir -p ~/.omniroute
 
-          # 2. Write the OpenRouter key to OmniRoute's environment file
+          # 2. Write key directly into provider credentials configuration
+          echo '{"openrouter":{"apiKey":"'${OPENROUTER_API_KEY}'"}}' > ~/.omniroute/credentials.json
           echo "OPENROUTER_API_KEY=${OPENROUTER_API_KEY}" > ~/.omniroute/.env
 
-          # 3. Start OmniRoute daemon
+          # 3. Boot OmniRoute in background
           omniroute serve --daemon &
           sleep 5
 
