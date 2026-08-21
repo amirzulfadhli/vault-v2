@@ -1,10 +1,9 @@
 import os
 from openai import OpenAI
 
-# The Boss agent connects directly to the OmniRoute Proxy (Secretary)
 client = OpenAI(
     base_url="http://127.0.0.1:20128/v1",
-    api_key=os.environ.get("OPENROUTER_API_KEY", "dummy-key")
+    api_key="omniroute-local"  # Standard placeholder for local OmniRoute proxy
 )
 
 response = client.chat.completions.create(
