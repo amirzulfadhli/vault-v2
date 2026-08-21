@@ -1,101 +1,42 @@
-name: 24/7 Second Brain Sub-Agent
+name: 24/7 Second Brain Pipeline
 
 on:
   schedule:
-    # Runs automatically every 6 hours
-    - cron: '0 */6 * * *'
-  push:
-    branches: [ main ]
-    paths:
-      - 'inbox/**'
-      - 'content/**'
-  workflow_dispatch: # Allows manual trigger from GitHub UI
+    - cron: '0 * * * *'  # Runs hourly
+  workflow_dispatch:
 
 jobs:
-  run-sub-agent:
+  second-brain:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     steps:
-      - name: Checkout Vault
+      - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          persist-credentials: true
-          fetch-depth: 0
 
-      - name: Setup Node.js & Python
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11' # <-- Change 3.10 to 3.11
+          node-version: '20'
 
-      - name: Install System Dependencies
+      - name: Install OmniRoute & Claude Code CLI
         run: |
-          npm install -g --legacy-peer-deps @anthropic-ai/claude-code omniroute
-          pip install hermes-agent requests
+          npm install -g omniroute @anthropic-ai/claude-code
 
-      - name: 1. Auto-Fetch Online Knowledge
-        run: |
-          python scripts/fetch_online_knowledge.py || true
-
-      - name: 2. Start OmniRoute Gateway (Secretary Proxy)
+      - name: 1. Start OmniRoute Gateway (Secretary Proxy)
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           mkdir -p ~/.omniroute
 
-          # Boot OmniRoute daemon
+          # Write OpenRouter key into OmniRoute's environment file
+          echo "OPENROUTER_API_KEY=${OPENROUTER_API_KEY}" > ~/.omniroute/.env
+
+          # Start OmniRoute proxy daemon
           omniroute serve --daemon &
           sleep 5
 
-          # Programmatically register OpenRouter credential into OmniRoute's SQLite DB
-          omniroute provider add openrouter --api-key "${OPENROUTER_API_KEY}" || true
-
-      - name: 3. Run Boss Agent via OmniRoute Proxy
+      - name: 2. Run Claude Code CLI via OmniRoute
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENAI_BASE_URL: "http://127.0.0.1:20128/v1"
+          OPENAI_API_KEY: "omniroute-local"  # Local proxy authorization header
         run: |
-          python scripts/boss_agent.py  
-      
-      
-      - name: 4. Wake Up Render Server (fcc-server)
-        env:
-          RENDER_URL: ${{ secrets.RENDER_SERVER_URL }}
-        run: |
-          echo "Pinging Render fcc-server..."
-          until curl -s "$RENDER_URL" > /dev/null; do
-            sleep 5
-          done
-          echo "Render fcc-server is active!"
-
-      - name: 5. Execute Claude Code CLI (The Worker)
-        env:
-          ANTHROPIC_BASE_URL: ${{ secrets.RENDER_SERVER_URL }}
-          ANTHROPIC_AUTH_TOKEN: ${{ secrets.MY_SECRET_TOKEN }}
-        run: |
-          if [ -f task_instruction.txt ]; then
-            claude --dangerously-skip-permissions -p "$(cat task_instruction.txt). Ensure new directories under content/ are created dynamically. Delete processed text items from inbox/."
-          fi
-
-      - name: Commit and Push Changes Back to Vault
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # 1. Stage all newly created and deleted files
-          git add -A
-          
-          # 2. Commit local changes if any exist
-          if ! git diff-index --quiet HEAD; then
-            git commit -m "Automated sub-agent processing [skip ci]"
-          fi
-          
-          # 3. Sync with remote branch using merge strategy
-          git fetch origin main
-          git merge origin/main -X ours --no-edit || true
-          
-          # 4. Push final state to remote repository
-          git push origin main
+          claude -p "Inspect inbox/*.txt items. Analyze taxonomy rules in CLAUDE.md. Formulate and apply file-sorting directives directly." --allowedTools "Read,Edit,Bash"
