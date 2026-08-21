@@ -45,24 +45,19 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          # 1. Setup OmniRoute configuration folder
           mkdir -p ~/.omniroute
-
-          # 2. Write key directly into provider credentials configuration
           echo '{"openrouter":{"apiKey":"'${OPENROUTER_API_KEY}'"}}' > ~/.omniroute/credentials.json
           echo "OPENROUTER_API_KEY=${OPENROUTER_API_KEY}" > ~/.omniroute/.env
-
-          # 3. Boot OmniRoute in background
           omniroute serve --daemon &
           sleep 5
 
       - name: 3. Run Hermes Agent (The Boss) via OmniRoute Proxy
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENAI_BASE_URL: "http://127.0.0.1:20128/v1"
+          OPENAI_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          mkdir -p ~/.hermes
-          cp ./scripts/hermes-config.yaml ~/.hermes/config.yaml
-          hermes chat -q "Inspect inbox/*.txt items. Analyze taxonomy rules in CLAUDE.md. Formulate sorting directives into task_instruction.txt." --yolo || true
+          hermes chat -m "custom_openai/openrouter/nousresearch/hermes-3-llama-3.1-405b:free" -q "Inspect inbox/*.txt items. Analyze taxonomy rules in CLAUDE.md. Formulate sorting directives into task_instruction.txt." --yolo || true
       - name: 4. Wake Up Render Server (fcc-server)
         env:
           RENDER_URL: ${{ secrets.RENDER_SERVER_URL }}
