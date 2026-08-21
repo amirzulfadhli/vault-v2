@@ -1,42 +1,52 @@
-name: 24/7 Second Brain Pipeline
+name: 24/7 Second Brain Sub-Agent
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Runs hourly
-  workflow_dispatch:
+    # Runs automatically every 6 hours
+    - cron: '0 */12 * * *'
+  push:
+    branches: [ main ]
+    paths:
+      - 'inbox/'
+      - 'content/'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:
-  second-brain:
+  run-sub-agent:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout Vault
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install OmniRoute & Claude Code CLI
-        run: |
-          npm install -g omniroute @anthropic-ai/claude-code
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
 
-      - name: 1. Start OmniRoute Gateway (Secretary Proxy)
+      - name: Process Vault via Free Claude Code
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ANTHROPIC_BASE_URL: ${{ secrets.RENDER_SERVER_URL }}
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.MY_SECRET_TOKEN }}
         run: |
-          mkdir -p ~/.omniroute
+          mkdir -p inbox
+          claude --dangerously-skip-permissions -p "Check notes in inbox/ and content/ folders. Categorize insights into sub-agent files: cs-tech.md, science-ai.md, finance-budget.md, and agriculture-iot.md. Keep existing file structures intact and clean up processed notes."
 
-          # Write OpenRouter key into OmniRoute's environment file
-          echo "OPENROUTER_API_KEY=${OPENROUTER_API_KEY}" > ~/.omniroute/.env
-
-          # Start OmniRoute proxy daemon
-          omniroute serve --daemon &
-          sleep 5
-
-      - name: 2. Run Claude Code CLI via OmniRoute
-        env:
-          OPENAI_BASE_URL: "http://127.0.0.1:20128/v1"
-          OPENAI_API_KEY: "omniroute-local"  # Local proxy authorization header
+      - name: Commit and Push Changes Back to Vault
         run: |
-          claude -p "Inspect inbox/*.txt items. Analyze taxonomy rules in CLAUDE.md. Formulate and apply file-sorting directives directly." --allowedTools "Read,Edit,Bash"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          if ! git diff-index --quiet HEAD; then
+            git pull --rebase --autostash origin main
+            git commit -m "Automated sub-agent processing [skip ci]"
+            git push origin main
+          fi
