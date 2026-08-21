@@ -45,22 +45,14 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          # 1. Create standard OmniRoute directories
-          mkdir -p ~/.omniroute/data
+          mkdir -p ~/.omniroute
 
-          # 2. Register OpenRouter credentials in OmniRoute's JSON format
-          cat << 'EOF' > ~/.omniroute/data/provider-credentials.json
-          {
-            "openrouter": {
-              "apiKey": "${{ secrets.OPENROUTER_API_KEY }}"
-            }
-          }
-          EOF
-
-          # 3. Export environment variable globally and boot daemon
-          export OPENROUTER_API_KEY="${{ secrets.OPENROUTER_API_KEY }}"
+          # Boot OmniRoute daemon
           omniroute serve --daemon &
           sleep 5
+
+          # Programmatically register OpenRouter credential into OmniRoute's SQLite DB
+          omniroute provider add openrouter --api-key "${OPENROUTER_API_KEY}" || true
 
       - name: 3. Run Boss Agent via OmniRoute Proxy
         env:
