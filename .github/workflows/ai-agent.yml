@@ -32,6 +32,9 @@ jobs:
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code
 
+      - name: Wake Up Render Server
+        run: curl -s ${{ secrets.RENDER_SERVER_URL }} || true
+
       - name: Process Vault via Multi-Model Sub-Agents
         env:
           ANTHROPIC_BASE_URL: ${{ secrets.RENDER_SERVER_URL }}
@@ -39,7 +42,7 @@ jobs:
           ANTHROPIC_API_KEY: ""
         run: |
           mkdir -p inbox
-          claude --model claude-3-5-sonnet --dangerously-skip-permissions -p "Check inbox/ and content/. Delegate tasks to defined sub-agents."
+          claude --model claude-3-5-sonnet --dangerously-skip-permissions -p "Read only files inside inbox/*.md. Process and append content directly into corresponding files: cs-tech.md, science-ai.md, finance-budget.md, and agriculture-iot.md. Delete processed files from inbox/."
           
       - name: Commit and Push Changes Back to Vault
         run: |
