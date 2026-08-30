@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: true
           fetch-depth: 0
@@ -44,7 +44,7 @@ jobs:
           done
 
       - name: Commit and Push Processed Notes
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "chore(ai): process raw notes [skip ci]"
           branch: main
